@@ -1,0 +1,84 @@
+import PyPDF2
+import pandas as pd 
+import re
+import openpyxl
+pdf_path = r"path"
+reader = PyPDF2.PdfReader(pdf_path)
+writer = PyPDF2.PdfWriter()
+text1 = ""
+for i in range(135,136):
+    page = reader.pages[i]
+    text = page.extract_text()
+    text1 += text
+raw_pdf_text = text1
+lines = raw_pdf_text.strip().split("\n")
+
+
+first_table_rows = []
+processing_first_table = False
+
+for line in lines:
+    
+    if "€" in line:
+        processing_first_table = True
+        continue
+    
+    if processing_first_table and ( "a b c d e f" in line):
+        break
+    if processing_first_table and line.strip():
+        first_table_rows.append(line.strip())
+
+
+first_table_data = []
+for row in first_table_rows:
+    parts = row.split()
+   
+    industry_code = parts[0]
+    industry_name = " ".join(parts[1:-6]) 
+    values = parts[-6:]  
+    first_table_data.append([industry_code, industry_name] + values)
+
+
+columns = [
+    "Industry Code",
+    "Industry",
+    "Gross carrying amount (€ million)",
+    "Non-performing (€ million)",
+    "Defaulted (€ million)",
+    "Subject to impairment (€ million)",
+    "Accumulated impairment (€ million)",
+    "Accumulated negative changes (€ million)",
+]
+
+
+df_cleaned = pd.DataFrame(first_table_data, columns=columns)
+
+import numpy as np
+
+def validate_and_correct_shift_v5(df):
+    corrected_data = []
+    for _, row in df.iterrows():
+        row_values = row.tolist()
+        while True:
+            valid = True
+           
+            for i in range(2, len(row_values)):
+                value = row_values[i]
+               
+                if not pd.isna(value) and not isinstance(value, (int, float)):
+                    value_str = str(value).replace(',', '').replace('(', '').replace(')', '').replace('-', '').strip()
+                    if not value_str.isdigit():
+                       
+                        row_values = row_values[:i] + [np.nan] + row_values[i:-1]
+                        valid = False
+                        break
+            if valid:
+                break  
+        corrected_data.append(row_values)
+   
+    return pd.DataFrame(corrected_data, columns=df.columns)
+
+
+
+df_validated = validate_and_correct_shift_v5(df_cleaned)
+print(df_validated)

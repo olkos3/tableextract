@@ -1,0 +1,45 @@
+import PyPDF2
+import pandas as pd 
+import re
+import openpyxl
+pdf_path = r"path"
+reader = PyPDF2.PdfReader(pdf_path)
+writer = PyPDF2.PdfWriter()
+text1 = ""
+for i in range(34, 35):
+    page = reader.pages[i]
+    text = page.extract_text()
+    text1 += text
+# print(text1)
+pdf_content = text1
+start_pattern = r"Table\s+15:\s+EU CQ5.*?a\s+b\s+c\s+d\s+e\s+f"  
+end_pattern = r"200\s+Total.*?\n" 
+
+table_match = re.search(f"{start_pattern}(.*?){end_pattern}", pdf_content, re.DOTALL)
+
+if table_match:
+    table_text = table_match.group(1)
+
+   
+    lines = table_text.strip().split("\n")
+    rows = []
+    print(lines)
+
+    for line in lines:
+        
+        if re.match(r"^\d{3}.*", line): 
+           
+            columns = re.split(r"\s{2,}", line.strip())
+            rows.append(columns)
+    print(rows)
+   
+    num_columns = len(rows[0]) if rows else 0
+    headers = ["a", "b", "c", "d", "e", "f"][:num_columns]  
+
+   
+    df = pd.DataFrame(rows, columns=headers)
+
+
+
+df.to_excel("test.xlsx")
+print(df)

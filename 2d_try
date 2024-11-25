@@ -1,0 +1,57 @@
+import PyPDF2
+import pandas as pd 
+import re
+import openpyxl
+pdf_path = r"path"
+reader = PyPDF2.PdfReader(pdf_path)
+writer = PyPDF2.PdfWriter()
+text1 = ""
+for i in range(47,48):
+    page = reader.pages[i]
+    text = page.extract_text()
+    text1 += text
+raw_text = text1
+lines = raw_text.split("\n")
+table_lines = []
+
+
+processing = False
+for line in lines:
+    if "€ million" in line:
+        processing = True
+        continue
+    if processing and line.strip():
+       
+        if "31 December 2022" in line:
+            break
+        table_lines.append(line.strip())
+print(table_lines)
+
+
+data = []
+for row in table_lines:
+    parts = row.split()
+  
+    code = parts[0]
+    
+    industry = " ".join(parts[1:-6])
+   
+    values = parts[-6:]
+    data.append([code, industry] + values)
+
+
+columns = [
+    "Industry Code",
+    "Industry",
+    "Gross carrying amount (€ million)",
+    "Non-performing (€ million)",
+    "Defaulted (€ million)",
+    "Subject to impairment (€ million)",
+    "Accumulated impairment (€ million)",
+    "Accumulated negative changes (€ million)",
+]
+
+
+df_first_table = pd.DataFrame(data, columns=columns)
+print(df_first_table)
+df_first_table.to_excel("test1.xlsx")
